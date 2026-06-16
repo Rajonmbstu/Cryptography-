@@ -1,1 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Classical Cryptography System</title>
+<style>
+  /* ── Design Tokens ───────────────────────────────────────── */
+  :root {
+    --bg:        #0d1117;
+    --surface:   #161b22;
+    --surface2:  #1f2937;
+    --border:    #30363d;
+    --green:     #39d353;
+    --green-dim: #1a6b29;
+    --green-glow:#39d35344;
+    --amber:     #f0a500;
+    --red:       #f85149;
+    --text:      #e6edf3;
+    --muted:     #8b949e;
+    --mono:      'Courier New', 'Lucida Console', monospace;
+    --sans:      'Segoe UI', system-ui, sans-serif;
+    --radius:    8px;
+    --transition: 0.18s ease;
+  }
+  .light-mode {
+    --bg:        #f0f4f8;
+    --surface:   #ffffff;
+    --surface2:  #e8edf3;
+    --border:    #c9d1d9;
+    --green:     #1a7f37;
+    --green-dim: #a7f3c0;
+    --green-glow:#1a7f3722;
+    --text:      #0d1117;
+    --muted:     #57606a;
+  }
 
+  /* ── Reset & Base ────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    transition: background var(--transition), color var(--transition);
+  }
+
+  /* ── Header ──────────────────────────────────────────────── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 64px;
+  }
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .cipher-wheel {
+    width: 40px; height: 40px;
+    flex-shrink: 0;
+    animation: spin 18s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .brand-text h1 {
+    font-family: var(--mono);
+    font-size: 1rem;
+    color: var(--green);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .brand-text p { font-size: 0.72rem; color: var(--muted); }
+  .header-controls { display: flex; gap: 10px; align-items: center; }
+  .btn-icon {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 6px 12px;
+    transition: border-color var(--transition), background var(--transition);
+    white-space: nowrap;
+  }
+  .btn-icon:hover { border-color: var(--green); background: var(--green-glow); }
+
+  /* ── Tab Navigation ──────────────────────────────────────── */
+  .tab-nav {
+    display: flex;
+    gap: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 0 24px;
+  }
+  .tab-nav::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+    padding: 14px 20px;
+    transition: color var(--transition), border-color var(--transition);
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--green); border-bottom-color: var(--green); }
+
+  /* ── Main Layout ─────────────────────────────────────────── */
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Section cards ───────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    transition: border-color var(--transition);
+  }
+  .card:hover { border-color: var(--green-dim); }
+  .card-title {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::before {
+    content: '';
+    display: inline-block;
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--green);
+  }
+
+  /* ── Form Controls ───────────────────────────────────────── */
+  .field { margin-bottom: 16px; }
+  label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  input[type="text"], textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    padding: 10px 14px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    outline: none;
+    resize: vertical;
+  }
+  input[type="text"]:focus, textarea:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px var(--green-glow);
+  }
+  textarea { min-height: 80px; }
+
+  /* ── Buttons ─────────────────────────────────────────────── */
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+  .btn {
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 9px 20px;
+    text-transform: uppercase;
+    transition: opacity var(--transition), transform 0.1s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--green); color: #0d1117; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+  .btn-secondary:hover { border-color: var(--green); }
+  .btn-amber { background: var(--amber); color: #0d1117; }
+  .btn-amber:hover { opacity: 0.88; }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-danger:hover { opacity: 0.88; }
+  .btn-sm { font-size: 0.72rem; padding: 6px 12px; }
+
+  /* ── Output Box ──────────────────────────────────────────── */
+  .output-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    min-height: 56px;
+    padding: 14px 16px;
+    word-break: break-all;
+    color: var(--green);
+    position: relative;
+  }
+  .output-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.72rem;
+    padding: 3px 8px;
+  }
+  .copy-btn:hover { color: var(--green); border-color: var(--green); }
+
+  /* ── Steps / Info Boxes ──────────────────────────────────── */
+  .steps-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    line-height: 1.8;
+    max-height: 360px;
+    overflow-y: auto;
+    padding: 14px 16px;
+    color: var(--muted);
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .steps-box .step-highlight { color: var(--amber); }
+  .steps-box .step-result   { color: var(--green); }
+  .steps-box .step-pair     { color: var(--text); }
+  .steps-box .step-err      { color: var(--red); }
+
+  /* ── Mapping Table ───────────────────────────────────────── */
+  .alpha-table {
+    display: grid;
+    grid-template-columns: repeat(13, 1fr);
+    gap: 4px;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    text-align: center;
+  }
+  .alpha-cell {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 2px;
+    line-height: 1.4;
+  }
+  .alpha-cell .orig { color: var(--muted); }
+  .alpha-cell .sub  { color: var(--green); font-weight: bold; }
+
+  /* ── Playfair Matrix ─────────────────────────────────────── */
+  .play-matrix {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    max-width: 280px;
+  }
+  .play-cell {
+    aspect-ratio: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    font-weight: bold;
+    transition: background var(--transition);
+  }
+  .play-cell.active { background: var(--green-glow); border-color: var(--green); }
+
+  /* ── Hill Matrix ─────────────────────────────────────────── */
+  .hill-grid { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+  .matrix-input {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    max-width: 200px;
+  }
+  .matrix-input input {
+    width: 100%;
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 10px;
+  }
+  .matrix-bracket {
+    font-family: var(--mono);
+    font-size: 3rem;
+    color: var(--muted);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    padding-top: 4px;
+  }
+  .matrix-display {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    color: var(--text);
+    min-width: 120px;
+  }
+  .matrix-row { display: flex; gap: 14px; }
+
+  /* ── Error / Success banners ─────────────────────────────── */
+  .banner {
+    border-radius: var(--radius);
+    font-size: 0.82rem;
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    display: none;
+  }
+  .banner.show { display: block; }
+  .banner-err  { background: #2d1117; border: 1px solid var(--red); color: var(--red); }
+  .banner-ok   { background: #0d2217; border: 1px solid var(--green); color: var(--green); }
+
+  /* ── Page Hero ───────────────────────────────────────────── */
+  .hero {
+    text-align: center;
+    padding: 40px 0 28px;
+  }
+  .hero-title {
+    font-family: var(--mono);
+    font-size: clamp(1.1rem, 4vw, 1.9rem);
+    color: var(--green);
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .hero-sub { color: var(--muted); font-size: 0.88rem; }
+  .hero-tags {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .tag {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-family: var(--mono);
+    color: var(--muted);
+    padding: 4px 12px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Two-column layout ───────────────────────────────────── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* ── Ticker ──────────────────────────────────────────────── */
+  .ticker {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    overflow: hidden;
+    padding: 6px 0;
+  }
+  .ticker-inner {
+    display: inline-block;
+    white-space: nowrap;
+    animation: ticker-scroll 30s linear infinite;
+    padding-left: 100%;
+  }
+  @keyframes ticker-scroll { to { transform: translateX(-100%); } }
+
+  /* ── Responsive ──────────────────────────────────────────── */
+  @media (max-width: 520px) {
+    main { padding: 16px 12px 50px; }
+    .card { padding: 16px; }
+    .alpha-table { grid-template-columns: repeat(9, 1fr); }
+    .play-matrix { max-width: 220px; }
+  }
+
+  /* ── Scrollbar ───────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ──────────────── TICKER ──────────────────────────────── -->
+<div class="ticker">
+  <span class="ticker-inner">
+    CLASSICAL CRYPTOGRAPHY &nbsp;·&nbsp; MONOALPHABETIC CIPHER &nbsp;·&nbsp;
+    PLAYFAIR CIPHER &nbsp;·&nbsp; HILL CIPHER &nbsp;·&nbsp;
+    ENCRYPTION &amp; DECRYPTION &nbsp;·&nbsp; MOD 26 ARITHMETIC &nbsp;·&nbsp;
+    KEY SUBSTITUTION &nbsp;·&nbsp; MATRIX MULTIPLICATION &nbsp;·&nbsp;
+    5×5 POLYBIUS SQUARE &nbsp;·&nbsp; UNIVERSITY CRYPTOGRAPHY PROJECT &nbsp;·&nbsp;
+  </span>
+</div>
+
+<!-- ──────────────── HEADER ──────────────────────────────── -->
+<header>
+  <div class="header-brand">
+    <!-- Animated cipher wheel SVG -->
+    <svg class="cipher-wheel" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="20" cy="20" r="18" stroke="#30363d" stroke-width="1.5"/>
+      <circle cx="20" cy="20" r="11" stroke="#39d353" stroke-width="1" stroke-dasharray="3 2"/>
+      <circle cx="20" cy="20" r="4" fill="#39d353" opacity="0.8"/>
+      <text font-family="monospace" font-size="5" fill="#39d353" opacity="0.6">
+        <textPath href="#ring">A·B·C·D·E·F·G·H·I·J·K·L·M·N·O·P</textPath>
+      </text>
+      <defs>
+        <path id="ring" d="M20,2 A18,18 0 1,1 19.99,2"/>
+      </defs>
+    </svg>
+    <div class="brand-text">
+      <h1>CRYPTO//SYSTEM</h1>
+      <p>Classical Cipher Toolkit · Educational Edition</p>
+    </div>
+  </div>
+  <div class="header-controls">
+    <button class="btn-icon btn-sm" id="themeBtn" title="Toggle light/dark">🌙 Theme</button>
+  </div>
+</header>
+
+<!-- ──────────────── TAB NAV ─────────────────────────────── -->
+<nav class="tab-nav" role="tablist">
+  <button class="tab-btn active" data-tab="home"   role="tab">⌂ Home</button>
+  <button class="tab-btn"        data-tab="mono"   role="tab">Monoalphabetic</button>
+  <button class="tab-btn"        data-tab="play"   role="tab">Playfair</button>
+  <button class="tab-btn"        data-tab="hill"   role="tab">Hill Cipher</button>
+</nav>
+
+<!-- ══════════════ MAIN ══════════════════════════════════════ -->
+<main>
+
+  <!-- ──────────── HOME TAB ──────────────────────────────── -->
+  <div class="tab-panel active" id="panel-home">
+    <div class="hero">
+      <div class="hero-title">CLASSICAL CRYPTOGRAPHY SYSTEM</div>
+      <p class="hero-sub">An interactive toolkit for studying historical cipher techniques</p>
+      <div class="hero-tags">
+        <span class="tag">Monoalphabetic Cipher</span>
+        <span class="tag">Playfair Cipher</span>
+        <span class="tag">Hill Cipher</span>
+        <span class="tag">Encrypt &amp; Decrypt</span>
+        <span class="tag">Step-by-step Walkthrough</span>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Monoalphabetic Cipher</div>
+        <p style="color:var(--muted);font-size:0.85rem;line-height:1.7">
+          A substitution cipher that maps each letter of the plaintext alphabet to a unique ciphertext letter using a fixed substitution key. Simple but historically significant—used in Caesar ciphers, ROT13, and Atbash.
+        </p>
+        <ul style="color:var(--muted);font-size:0.82rem;margin-top:12px;padding-left:18px;line-height:2">
+          <li>26! possible keys</li>
+          <li>Auto-generate or enter custom key</li>
+          <li>Visual alphabet mapping table</li>
+        </ul>
+        <button class="btn btn-secondary btn-sm" style="margin-top:14px" onclick="switchTab('mono')">Open →</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Playfair Cipher</div>
+        <p style="color:var(--muted);font-size:0.85rem;line-height:1.7">
+          A digraph substitution cipher invented by Charles Wheatstone in 1854. Encrypts pairs of letters using a 5×5 keyword matrix. Used by the British military in WWI and WWII.
+        </p>
+        <ul style="color:var(--muted);font-size:0.82rem;margin-top:12px;padding-left:18px;line-height:2">
+          <li>5×5 Polybius matrix</li>
+          <li>I/J merging rule</li>
+          <li>Same-row, same-col, rectangle rules</li>
+        </ul>
+        <button class="btn btn-secondary btn-sm" style="margin-top:14px" onclick="switchTab('play')">Open →</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Hill Cipher</div>
+        <p style="color:var(--muted);font-size:0.85rem;line-height:1.7">
+          A polygraphic cipher using linear algebra. Encrypts blocks of letters using matrix multiplication modulo 26. Invented by Lester S. Hill in 1929. First practical cipher using modern algebra.
+        </p>
+        <ul style="color:var(--muted);font-size:0.82rem;margin-top:12px;padding-left:18px;line-height:2">
+          <li>2×2 key matrix input</li>
+          <li>Invertibility validation mod 26</li>
+          <li>Matrix calculation walkthrough</li>
+        </ul>
+        <button class="btn btn-secondary btn-sm" style="margin-top:14px" onclick="switchTab('hill')">Open →</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Quick Reference</div>
+        <div style="font-family:var(--mono);font-size:0.78rem;color:var(--muted);line-height:2">
+          <div><span style="color:var(--green)">A=0</span> B=1 C=2 D=3 E=4 F=5 G=6</div>
+          <div>H=7 <span style="color:var(--green)">I=8</span> J=9 K=10 L=11 M=12</div>
+          <div>N=13 O=14 P=15 Q=16 R=17 S=18</div>
+          <div>T=19 U=20 V=21 W=22 X=23 Y=24 <span style="color:var(--green)">Z=25</span></div>
+          <div style="margin-top:10px;color:var(--amber)">Playfair I/J → treated as same letter</div>
+          <div style="color:var(--amber)">Hill det(K) mod 26 must be ≠ 0 &amp; coprime 26</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────────── MONOALPHABETIC TAB ────────────────────── -->
+  <div class="tab-panel" id="panel-mono">
+    <div class="card">
+      <div class="card-title">Monoalphabetic Cipher — Key Setup</div>
+      <div class="field">
+        <label>Substitution Key (26 unique letters)</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="monoKey" maxlength="26" placeholder="e.g. QWERTYUIOPASDFGHJKLZXCVBNM"
+                 oninput="this.value=this.value.toUpperCase().replace(/[^A-Z]/g,'')" />
+          <button class="btn btn-secondary btn-sm" onclick="monoGenerateKey()">Auto</button>
+        </div>
+      </div>
+      <div id="monoBanner" class="banner"></div>
+      <div id="monoMapWrap" style="display:none">
+        <div class="output-label" style="margin-bottom:8px">Substitution Mapping</div>
+        <div class="alpha-table" id="monoMap"></div>
+      </div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="monoShowMap()">Show / Update Map</button>
+    </div>
+
+    <div class="two-col">
+      <!-- ENCRYPT -->
+      <div class="card">
+        <div class="card-title">Encrypt</div>
+        <div class="field">
+          <label>Plaintext</label>
+          <textarea id="monoPlain" placeholder="Enter plaintext…"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="monoEncrypt()">Encrypt</button>
+          <button class="btn btn-secondary" onclick="monoReset('enc')">Reset</button>
+        </div>
+        <div style="margin-top:16px">
+          <div class="output-label">Ciphertext Output</div>
+          <div class="output-box" id="monoCipherOut">
+            —
+            <button class="copy-btn" onclick="copyText('monoCipherOut')">copy</button>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <div class="output-label">Substitution Steps</div>
+          <div class="steps-box" id="monoEncSteps">Steps will appear here…</div>
+        </div>
+      </div>
+      <!-- DECRYPT -->
+      <div class="card">
+        <div class="card-title">Decrypt</div>
+        <div class="field">
+          <label>Ciphertext</label>
+          <textarea id="monoCipher" placeholder="Enter ciphertext…"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-amber" onclick="monoDecrypt()">Decrypt</button>
+          <button class="btn btn-secondary" onclick="monoReset('dec')">Reset</button>
+        </div>
+        <div style="margin-top:16px">
+          <div class="output-label">Plaintext Output</div>
+          <div class="output-box" id="monoPlainOut">
+            —
+            <button class="copy-btn" onclick="copyText('monoPlainOut')">copy</button>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <div class="output-label">Substitution Steps</div>
+          <div class="steps-box" id="monoDecSteps">Steps will appear here…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────────── PLAYFAIR TAB ───────────────────────────── -->
+  <div class="tab-panel" id="panel-play">
+    <div class="card">
+      <div class="card-title">Playfair Cipher — Keyword &amp; Matrix</div>
+      <div class="field">
+        <label>Keyword</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="playKey" placeholder="e.g. MONARCHY"
+                 oninput="this.value=this.value.toUpperCase().replace(/[^A-Z]/g,'')" />
+          <button class="btn btn-secondary btn-sm" onclick="playBuildMatrix()">Build Matrix</button>
+        </div>
+      </div>
+      <div id="playBanner" class="banner"></div>
+      <div id="playMatrixWrap" style="display:none">
+        <div class="output-label" style="margin-bottom:10px">5 × 5 Polybius Matrix</div>
+        <div class="play-matrix" id="playMatrix"></div>
+        <p style="font-size:0.75rem;color:var(--muted);margin-top:10px">I and J are treated as the same letter in this cipher.</p>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <!-- ENCRYPT -->
+      <div class="card">
+        <div class="card-title">Encrypt</div>
+        <div class="field">
+          <label>Plaintext</label>
+          <textarea id="playPlain" placeholder="Enter plaintext…"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="playEncrypt()">Encrypt</button>
+          <button class="btn btn-secondary" onclick="playReset('enc')">Reset</button>
+        </div>
+        <div style="margin-top:16px">
+          <div class="output-label">Ciphertext Output</div>
+          <div class="output-box" id="playCipherOut">
+            —
+            <button class="copy-btn" onclick="copyText('playCipherOut')">copy</button>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <div class="output-label">Pair-by-pair Steps</div>
+          <div class="steps-box" id="playEncSteps">Steps will appear here…</div>
+        </div>
+      </div>
+      <!-- DECRYPT -->
+      <div class="card">
+        <div class="card-title">Decrypt</div>
+        <div class="field">
+          <label>Ciphertext</label>
+          <textarea id="playCipher" placeholder="Enter ciphertext…"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-amber" onclick="playDecrypt()">Decrypt</button>
+          <button class="btn btn-secondary" onclick="playReset('dec')">Reset</button>
+        </div>
+        <div style="margin-top:16px">
+          <div class="output-label">Plaintext Output</div>
+          <div class="output-box" id="playPlainOut">
+            —
+            <button class="copy-btn" onclick="copyText('playPlainOut')">copy</button>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <div class="output-label">Pair-by-pair Steps</div>
+          <div class="steps-box" id="playDecSteps">Steps will appear here…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────────── HILL TAB ───────────────────────────────── -->
+  <div class="tab-panel" id="panel-hill">
+    <div class="card">
+      <div class="card-title">Hill Cipher — 2×2 Key Matrix</div>
+      <div class="hill-grid">
+        <div>
+          <div class="output-label" style="margin-bottom:8px">Key Matrix K</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="matrix-bracket">[</span>
+            <div class="matrix-input">
+              <input type="text" id="k00" value="3"  maxlength="3" placeholder="a">
+              <input type="text" id="k01" value="3"  maxlength="3" placeholder="b">
+              <input type="text" id="k10" value="2"  maxlength="3" placeholder="c">
+              <input type="text" id="k11" value="5"  maxlength="3" placeholder="d">
+            </div>
+            <span class="matrix-bracket">]</span>
+          </div>
+          <div class="btn-row" style="margin-top:14px">
+            <button class="btn btn-secondary btn-sm" onclick="hillValidate()">Validate Key</button>
+          </div>
+        </div>
+        <div>
+          <div class="output-label" style="margin-bottom:8px">Matrix Info</div>
+          <div class="matrix-display" id="hillKeyInfo">Enter values and click Validate.</div>
+        </div>
+      </div>
+      <div id="hillBanner" class="banner" style="margin-top:14px"></div>
+    </div>
+
+    <div class="two-col">
+      <!-- ENCRYPT -->
+      <div class="card">
+        <div class="card-title">Encrypt</div>
+        <div class="field">
+          <label>Plaintext</label>
+          <textarea id="hillPlain" placeholder="Enter plaintext (length must be even or will be padded with X)…"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="hillEncrypt()">Encrypt</button>
+          <button class="btn btn-secondary" onclick="hillReset('enc')">Reset</button>
+        </div>
+        <div style="margin-top:16px">
+          <div class="output-label">Ciphertext Output</div>
+          <div class="output-box" id="hillCipherOut">
+            —
+            <button class="copy-btn" onclick="copyText('hillCipherOut')">copy</button>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <div class="output-label">Matrix Calculation Steps</div>
+          <div class="steps-box" id="hillEncSteps">Steps will appear here…</div>
+        </div>
+      </div>
+      <!-- DECRYPT -->
+      <div class="card">
+        <div class="card-title">Decrypt</div>
+        <div class="field">
+          <label>Ciphertext</label>
+          <textarea id="hillCipher" placeholder="Enter ciphertext…"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-amber" onclick="hillDecrypt()">Decrypt</button>
+          <button class="btn btn-secondary" onclick="hillReset('dec')">Reset</button>
+        </div>
+        <div style="margin-top:16px">
+          <div class="output-label">Plaintext Output</div>
+          <div class="output-box" id="hillPlainOut">
+            —
+            <button class="copy-btn" onclick="copyText('hillPlainOut')">copy</button>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <div class="output-label">Matrix Calculation Steps</div>
+          <div class="steps-box" id="hillDecSteps">Steps will appear here…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   UTILITY FUNCTIONS
+═══════════════════════════════════════════════════════════════ */
+const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+function sanitize(s) {
+  return s.toUpperCase().replace(/[^A-Z]/g, '');
+}
+
+function setBanner(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = `banner ${type} show`;
+}
+function clearBanner(id) {
+  const el = document.getElementById(id);
+  el.className = 'banner';
+  el.textContent = '';
+}
+
+function setOutput(id, val) {
+  const el = document.getElementById(id);
+  const btn = el.querySelector('.copy-btn');
+  el.textContent = val || '—';
+  if (btn) el.appendChild(btn);
+}
+
+function copyText(id) {
+  const el = document.getElementById(id);
+  const text = el.textContent.replace('copy','').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = el.querySelector('.copy-btn');
+    if (btn) { btn.textContent = '✓ copied'; setTimeout(() => btn.textContent = 'copy', 1500); }
+  });
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+}
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+/* ── Theme ── */
+document.getElementById('themeBtn').addEventListener('click', () => {
+  document.body.classList.toggle('light-mode');
+  document.getElementById('themeBtn').textContent =
+    document.body.classList.contains('light-mode') ? '🌙 Dark' : '☀ Light';
+});
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MONOALPHABETIC CIPHER
+═══════════════════════════════════════════════════════════════ */
+function monoGenerateKey() {
+  let arr = ALPHA.split('');
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  document.getElementById('monoKey').value = arr.join('');
+  monoShowMap();
+}
+
+function monoValidateKey() {
+  const key = document.getElementById('monoKey').value.trim();
+  if (key.length !== 26) { setBanner('monoBanner','Key must be exactly 26 letters.','banner-err'); return null; }
+  if (new Set(key).size !== 26) { setBanner('monoBanner','Key must contain each letter exactly once.','banner-err'); return null; }
+  clearBanner('monoBanner');
+  return key;
+}
+
+function monoShowMap() {
+  const key = monoValidateKey();
+  if (!key) return;
+  const wrap = document.getElementById('monoMapWrap');
+  const container = document.getElementById('monoMap');
+  wrap.style.display = 'block';
+  container.innerHTML = '';
+  for (let i = 0; i < 26; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'alpha-cell';
+    cell.innerHTML = `<div class="orig">${ALPHA[i]}</div><div class="sub">${key[i]}</div>`;
+    container.appendChild(cell);
+  }
+}
+
+function monoEncrypt() {
+  const key = monoValidateKey(); if (!key) return;
+  const plain = sanitize(document.getElementById('monoPlain').value);
+  if (!plain) { setBanner('monoBanner','Please enter plaintext.','banner-err'); return; }
+  clearBanner('monoBanner');
+  let cipher = '', steps = '';
+  for (const ch of plain) {
+    const idx = ALPHA.indexOf(ch);
+    const enc = key[idx];
+    cipher += enc;
+    steps += `<span class="step-pair">${ch}</span> (${idx}) → <span class="step-result">${enc}</span>\n`;
+  }
+  setOutput('monoCipherOut', cipher);
+  document.getElementById('monoEncSteps').innerHTML = steps;
+}
+
+function monoDecrypt() {
+  const key = monoValidateKey(); if (!key) return;
+  const cipher = sanitize(document.getElementById('monoCipher').value);
+  if (!cipher) { setBanner('monoBanner','Please enter ciphertext.','banner-err'); return; }
+  clearBanner('monoBanner');
+  let plain = '', steps = '';
+  for (const ch of cipher) {
+    const idx = key.indexOf(ch);
+    if (idx === -1) { plain += '?'; steps += `<span class="step-err">${ch} → not in key!</span>\n`; continue; }
+    const dec = ALPHA[idx];
+    plain += dec;
+    steps += `<span class="step-pair">${ch}</span> (key[${idx}]) → <span class="step-result">${dec}</span>\n`;
+  }
+  setOutput('monoPlainOut', plain);
+  document.getElementById('monoDecSteps').innerHTML = steps;
+}
+
+function monoReset(mode) {
+  if (mode === 'enc') {
+    document.getElementById('monoPlain').value = '';
+    setOutput('monoCipherOut', '—');
+    document.getElementById('monoEncSteps').innerHTML = 'Steps will appear here…';
+  } else {
+    document.getElementById('monoCipher').value = '';
+    setOutput('monoPlainOut', '—');
+    document.getElementById('monoDecSteps').innerHTML = 'Steps will appear here…';
+  }
+  clearBanner('monoBanner');
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   PLAYFAIR CIPHER
+═══════════════════════════════════════════════════════════════ */
+let playMatrix5x5 = [];
+
+function playBuildMatrix() {
+  const keyword = sanitize(document.getElementById('playKey').value);
+  if (!keyword) { setBanner('playBanner','Please enter a keyword.','banner-err'); return; }
+  clearBanner('playBanner');
+
+  // Build 5x5 matrix: keyword letters first (J→I), then remaining
+  const seen = new Set();
+  const letters = [];
+  for (const ch of (keyword + ALPHA)) {
+    const c = ch === 'J' ? 'I' : ch;
+    if (!seen.has(c)) { seen.add(c); letters.push(c); }
+  }
+  // letters should now be exactly 25
+  playMatrix5x5 = [];
+  for (let r = 0; r < 5; r++) {
+    playMatrix5x5.push(letters.slice(r * 5, r * 5 + 5));
+  }
+
+  // Render
+  const wrap = document.getElementById('playMatrixWrap');
+  const grid = document.getElementById('playMatrix');
+  wrap.style.display = 'block';
+  grid.innerHTML = '';
+  playMatrix5x5.flat().forEach(ch => {
+    const cell = document.createElement('div');
+    cell.className = 'play-cell';
+    cell.textContent = ch;
+    grid.appendChild(cell);
+  });
+}
+
+function playFindPos(ch) {
+  const c = ch === 'J' ? 'I' : ch;
+  for (let r = 0; r < 5; r++)
+    for (let col = 0; col < 5; col++)
+      if (playMatrix5x5[r][col] === c) return [r, col];
+  return null;
+}
+
+function playPreparePairs(text) {
+  // replace J→I, build pairs with X filler
+  let clean = sanitize(text).split('').map(c => c === 'J' ? 'I' : c);
+  let pairs = [], steps = '';
+  let i = 0;
+  while (i < clean.length) {
+    let a = clean[i];
+    let b = i + 1 < clean.length ? clean[i + 1] : 'X';
+    if (a === b) {
+      steps += `<span class="step-highlight">Duplicate pair [${a}${b}] → inserting X filler → [${a}X]</span>\n`;
+      b = 'X'; i++;
+    } else { i += 2; }
+    pairs.push([a, b]);
+    steps += `Pair: <span class="step-pair">${a}${b}</span>\n`;
+  }
+  return { pairs, steps };
+}
+
+function playCipher(text, decrypt) {
+  if (!playMatrix5x5.length) { setBanner('playBanner','Build the matrix first.','banner-err'); return null; }
+  clearBanner('playBanner');
+  const { pairs, steps: pairSteps } = playPreparePairs(text);
+  let result = '';
+  let steps = pairSteps + '\n--- Cipher Steps ---\n';
+  const shift = decrypt ? -1 : 1;
+
+  for (const [a, b] of pairs) {
+    const [ra, ca] = playFindPos(a);
+    const [rb, cb] = playFindPos(b);
+    let ea, eb, rule;
+
+    if (ra === rb) {
+      // Same row
+      ea = playMatrix5x5[ra][(ca + shift + 5) % 5];
+      eb = playMatrix5x5[rb][(cb + shift + 5) % 5];
+      rule = 'same row';
+    } else if (ca === cb) {
+      // Same column
+      ea = playMatrix5x5[(ra + shift + 5) % 5][ca];
+      eb = playMatrix5x5[(rb + shift + 5) % 5][cb];
+      rule = 'same column';
+    } else {
+      // Rectangle
+      ea = playMatrix5x5[ra][cb];
+      eb = playMatrix5x5[rb][ca];
+      rule = 'rectangle';
+    }
+    result += ea + eb;
+    steps += `[<span class="step-pair">${a}${b}</span>] r${ra}c${ca} × r${rb}c${cb} `
+           + `<span class="step-highlight">(${rule})</span> → <span class="step-result">${ea}${eb}</span>\n`;
+  }
+  return { result, steps };
+}
+
+function playEncrypt() {
+  const text = sanitize(document.getElementById('playPlain').value);
+  if (!text) { setBanner('playBanner','Enter plaintext.','banner-err'); return; }
+  const out = playCipher(text, false);
+  if (!out) return;
+  setOutput('playCipherOut', out.result);
+  document.getElementById('playEncSteps').innerHTML = out.steps;
+}
+
+function playDecrypt() {
+  const text = sanitize(document.getElementById('playCipher').value);
+  if (!text) { setBanner('playBanner','Enter ciphertext.','banner-err'); return; }
+  const out = playCipher(text, true);
+  if (!out) return;
+  setOutput('playPlainOut', out.result);
+  document.getElementById('playDecSteps').innerHTML = out.steps;
+}
+
+function playReset(mode) {
+  if (mode === 'enc') {
+    document.getElementById('playPlain').value = '';
+    setOutput('playCipherOut', '—');
+    document.getElementById('playEncSteps').innerHTML = 'Steps will appear here…';
+  } else {
+    document.getElementById('playCipher').value = '';
+    setOutput('playPlainOut', '—');
+    document.getElementById('playDecSteps').innerHTML = 'Steps will appear here…';
+  }
+  clearBanner('playBanner');
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   HILL CIPHER
+═══════════════════════════════════════════════════════════════ */
+function hillGetMatrix() {
+  const vals = ['k00','k01','k10','k11'].map(id => {
+    const v = parseInt(document.getElementById(id).value, 10);
+    return isNaN(v) ? 0 : v;
+  });
+  return [[vals[0], vals[1]], [vals[2], vals[3]]];
+}
+
+function mod(n, m) { return ((n % m) + m) % m; }
+
+function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+
+function modInverse(a, m) {
+  a = mod(a, m);
+  for (let x = 1; x < m; x++) {
+    if ((a * x) % m === 1) return x;
+  }
+  return null;
+}
+
+function hillDet(K) {
+  return mod(K[0][0] * K[1][1] - K[0][1] * K[1][0], 26);
+}
+
+function hillInverse(K) {
+  const det = hillDet(K);
+  const detInv = modInverse(det, 26);
+  if (detInv === null) return null;
+  // Adjugate of 2x2: swap diag, negate off-diag
+  return [
+    [mod(K[1][1] * detInv, 26),  mod(-K[0][1] * detInv, 26)],
+    [mod(-K[1][0] * detInv, 26), mod(K[0][0] * detInv, 26)]
+  ];
+}
+
+function hillValidate() {
+  const K = hillGetMatrix();
+  const det = hillDet(K);
+  const detInv = modInverse(det, 26);
+  const info = document.getElementById('hillKeyInfo');
+  clearBanner('hillBanner');
+
+  let html = `<div class="matrix-row"><span>[${K[0][0]} ${K[0][1]}]</span></div>`;
+  html    += `<div class="matrix-row"><span>[${K[1][0]} ${K[1][1]}]</span></div>`;
+  html    += `\ndet(K) mod 26 = ${det}`;
+  html    += `\ngcd(det, 26)  = ${gcd(det, 26)}`;
+
+  if (detInv !== null) {
+    const Kinv = hillInverse(K);
+    html += `\ndet⁻¹ mod 26  = ${detInv}`;
+    html += `\n\nK⁻¹ mod 26:\n[${Kinv[0][0]} ${Kinv[0][1]}]\n[${Kinv[1][0]} ${Kinv[1][1]}]`;
+    info.style.color = 'var(--green)';
+    setBanner('hillBanner', '✓ Key is valid and invertible mod 26.', 'banner-ok');
+  } else {
+    html += `\n\n✗ Not invertible mod 26`;
+    info.style.color = 'var(--red)';
+    setBanner('hillBanner', `✗ det = ${det} is not coprime with 26. Choose a different key matrix.`, 'banner-err');
+  }
+  info.textContent = ''; // clear then set pre-formatted
+  info.style.whiteSpace = 'pre';
+  info.textContent = info.textContent + html.replace(/<[^>]+>/g,''); // plain text version
+  // For coloring use innerHTML
+  info.innerHTML = html.replace(/\n/g, '<br>');
+}
+
+function hillProcessText(text, K, decrypt, stepsEl) {
+  // Sanitize
+  let clean = sanitize(text);
+  if (!clean) return null;
+  // Pad to even length
+  if (clean.length % 2 !== 0) { clean += 'X'; }
+
+  let result = '';
+  let steps  = '';
+
+  for (let i = 0; i < clean.length; i += 2) {
+    const p1 = ALPHA.indexOf(clean[i]);
+    const p2 = ALPHA.indexOf(clean[i + 1]);
+    const vec = [p1, p2];
+
+    // Matrix × vector
+    const c1 = mod(K[0][0] * vec[0] + K[0][1] * vec[1], 26);
+    const c2 = mod(K[1][0] * vec[0] + K[1][1] * vec[1], 26);
+
+    result += ALPHA[c1] + ALPHA[c2];
+
+    const matLabel = decrypt ? 'K⁻¹' : 'K';
+    steps +=
+      `<span class="step-pair">Pair: ${clean[i]}${clean[i+1]} = [${p1}, ${p2}]</span>\n` +
+      `${matLabel} × [${p1}] = [${K[0][0]}×${p1} + ${K[0][1]}×${p2}] mod 26 = [${mod(K[0][0]*p1+K[0][1]*p2,26)}] → <span class="step-result">${ALPHA[c1]}</span>\n` +
+      `       [${p2}]   [${K[1][0]}×${p1} + ${K[1][1]}×${p2}] mod 26 = [${mod(K[1][0]*p1+K[1][1]*p2,26)}] → <span class="step-result">${ALPHA[c2]}</span>\n\n`;
+  }
+
+  stepsEl.innerHTML = steps;
+  return result;
+}
+
+function hillEncrypt() {
+  const K = hillGetMatrix();
+  const det = hillDet(K);
+  clearBanner('hillBanner');
+  if (modInverse(det, 26) === null) {
+    setBanner('hillBanner', `✗ Key matrix not invertible (det=${det}). Validate key first.`, 'banner-err');
+    return;
+  }
+  const text = document.getElementById('hillPlain').value;
+  if (!sanitize(text)) { setBanner('hillBanner','Enter plaintext.','banner-err'); return; }
+  const stepsEl = document.getElementById('hillEncSteps');
+  const result = hillProcessText(text, K, false, stepsEl);
+  if (result !== null) setOutput('hillCipherOut', result);
+}
+
+function hillDecrypt() {
+  const K = hillGetMatrix();
+  const Kinv = hillInverse(K);
+  clearBanner('hillBanner');
+  if (!Kinv) {
+    setBanner('hillBanner', `✗ Key matrix not invertible. Validate key first.`, 'banner-err');
+    return;
+  }
+  const text = document.getElementById('hillCipher').value;
+  if (!sanitize(text)) { setBanner('hillBanner','Enter ciphertext.','banner-err'); return; }
+  const stepsEl = document.getElementById('hillDecSteps');
+  const result = hillProcessText(text, Kinv, true, stepsEl);
+  if (result !== null) setOutput('hillPlainOut', result);
+}
+
+function hillReset(mode) {
+  if (mode === 'enc') {
+    document.getElementById('hillPlain').value = '';
+    setOutput('hillCipherOut', '—');
+    document.getElementById('hillEncSteps').innerHTML = 'Steps will appear here…';
+  } else {
+    document.getElementById('hillCipher').value = '';
+    setOutput('hillPlainOut', '—');
+    document.getElementById('hillDecSteps').innerHTML = 'Steps will appear here…';
+  }
+  clearBanner('hillBanner');
+}
+
+/* ── Fix copy buttons after setOutput rewrites textContent ── */
+/* Already handled: copy-btn is re-appended in setOutput      */
+
+/* ── Auto-uppercase inputs ───────────────────────────────── */
+['monoPlain','monoCipher','playPlain','playCipher','hillPlain','hillCipher'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', function() {
+    const pos = this.selectionStart;
+    this.value = this.value.toUpperCase();
+    this.setSelectionRange(pos, pos);
+  });
+});
+['k00','k01','k10','k11'].forEach(id => {
+  document.getElementById(id).addEventListener('input', function() {
+    this.value = this.value.replace(/[^0-9\-]/g, '');
+  });
+});
+</script>
+</body>
+</html>
